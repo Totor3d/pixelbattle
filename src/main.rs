@@ -1,11 +1,11 @@
 use std::{net::SocketAddr, sync::Arc};
+use tokio::sync::Mutex;
 use tokio::net::{TcpListener, TcpStream};
 use tokio_tungstenite::{accept_async, WebSocketStream};
 use futures_util::{stream::SplitSink, stream::SplitStream, SinkExt, StreamExt};
 use tokio::sync::broadcast;
 
 type Message = tokio_tungstenite::tungstenite::Message;
-
 
 mod pixels;
 use pixels::*;
@@ -15,34 +15,65 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let address = "127.0.0.1:8888";
     let (tx, _) = broadcast::channel::<Pixel>(64);
     let tx = Arc::new(tx);
-
     let listener = TcpListener::bind(address).await?;
     println!("WebSocket started on {}", address);
 
+    let pixels = Arc::new(Mutex::new(ChunkOfPixels::new()));
+    let rx = tx.subscribe();
+
+    let pixels_clone = Arc::clone(&pixels);
+
+    let save_pixels_task = tokio::spawn(async move{
+        save_pixels_process(rx, pixels_clone).await
+    });
+    
     while let Ok((stream, _)) = listener.accept().await {
         let tx_clone = Arc::clone(&tx);
         let rx = tx.subscribe();
-
+        
+        let pixels_clone = Arc::clone(&pixels);
         tokio::spawn(async move {
-            if let Err(e) = handle_connection(stream, tx_clone, rx).await {
+            if let Err(e) = handle_connection(stream, tx_clone, rx, pixels_clone).await {
                 eprintln!("Connection error: {}", e);
             }
         });
     }
+    
+    
+    tokio::select! {
+        _ = save_pixels_task => {}
+    }
 
     Ok(())
+}
+
+async fn save_pixels_process(mut rx: broadcast::Receiver<Pixel>, pixels: Arc<Mutex<ChunkOfPixels>>){
+    while let Ok(msg) = rx.recv().await {
+        println!("Saving {}", msg.to_json());
+        let mut pixels_data = pixels.lock().await;
+        pixels_data.add(msg);
+        drop(pixels_data);
+    }
 }
 
 async fn handle_connection(
     raw_stream: TcpStream,
     tx: Arc<broadcast::Sender<Pixel>>,
     rx: broadcast::Receiver<Pixel>,
+    pixels: Arc<Mutex<ChunkOfPixels>>
 ) -> Result<(), Box<dyn std::error::Error>> {
     let addr = raw_stream.peer_addr()?;
-    println!("New connection: {}", addr);
-
     let ws_stream = accept_async(raw_stream).await?;
-    let (write, read) = ws_stream.split();
+    let (mut write, read) = ws_stream.split();
+
+    println!("New connection: {}", addr);
+    let pixels_data = pixels.lock().await;
+    println!("!!!!!!!{}", pixels_data.get_all_pixels_as_vec().len());
+    for i in pixels_data.get_all_pixels_as_vec(){
+        println!("Sending pixel {}", i.to_json());
+        write.send(Message::Text(i.to_json())).await.expect("errrrrrrrrrrrrrrrrr");
+    }
+    drop(pixels_data);
 
     let tx_send = tx.clone();
     let send_task = tokio::spawn(async move {
