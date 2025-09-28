@@ -6,10 +6,14 @@ use tokio::sync::broadcast;
 
 type Message = tokio_tungstenite::tungstenite::Message;
 
+
+mod pixels;
+use pixels::*;
+
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let address = "127.0.0.1:8888";
-    let (tx, _) = broadcast::channel::<String>(64);
+    let (tx, _) = broadcast::channel::<Pixel>(64);
     let tx = Arc::new(tx);
 
     let listener = TcpListener::bind(address).await?;
@@ -31,8 +35,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 async fn handle_connection(
     raw_stream: TcpStream,
-    tx: Arc<broadcast::Sender<String>>,
-    rx: broadcast::Receiver<String>,
+    tx: Arc<broadcast::Sender<Pixel>>,
+    rx: broadcast::Receiver<Pixel>,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let addr = raw_stream.peer_addr()?;
     println!("New connection: {}", addr);
@@ -42,7 +46,7 @@ async fn handle_connection(
 
     let tx_send = tx.clone();
     let send_task = tokio::spawn(async move {
-        sending_processing(addr, tx_send, read).await;
+        resending_processing(addr, tx_send, read).await;
     });
 
     let recv_task = tokio::spawn(async move {
@@ -57,9 +61,9 @@ async fn handle_connection(
     Ok(())
 }
 
-async fn sending_processing(
+async fn resending_processing(
     addr: SocketAddr,
-    tx_send: Arc<broadcast::Sender<String>>,
+    tx_send: Arc<broadcast::Sender<Pixel>>,
     mut read: SplitStream<WebSocketStream<tokio::net::TcpStream>>){
     while let Some(result) = read.next().await {
         let msg = match result {
@@ -75,17 +79,17 @@ async fn sending_processing(
             }
         };
 
-        if let Err(e) = tx_send.send(msg) {
+        if let Err(e) = tx_send.send(Pixel::from_json(&msg).unwrap()) {
             eprintln!("Sending error: {}", e);
         }
     }
 }
 
 async fn process_inbox_data(
-    mut rx: broadcast::Receiver<String>,
-    mut write: SplitSink<WebSocketStream<tokio::net::TcpStream>, tokio_tungstenite::tungstenite::Message>){
+    mut rx: broadcast::Receiver<Pixel>,
+    mut write: SplitSink<WebSocketStream<tokio::net::TcpStream>, Message>){
     while let Ok(msg) = rx.recv().await {
-        if let Err(_e) = write.send(Message::Text(msg)).await
+        if let Err(_e) = write.send(Message::Text(msg.to_json())).await
         {
             eprintln!("Sending to client error");
             break;
