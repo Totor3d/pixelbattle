@@ -1,17 +1,39 @@
+use std::io::{BufReader, Read};
 use std::{net::SocketAddr, sync::Arc};
+use futures_util::stream;
+use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::sync::Mutex;
 use tokio::net::{TcpListener, TcpStream};
 use tokio_tungstenite::{accept_async, WebSocketStream};
 use futures_util::{stream::SplitSink, stream::SplitStream, SinkExt, StreamExt};
 use tokio::sync::broadcast;
+use actix_files as fs;
 
 type Message = tokio_tungstenite::tungstenite::Message;
+
+
+use actix_web::{App, HttpServer, Responder, HttpResponse, web};
+
 
 mod pixels;
 use pixels::*;
 
+
+
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    tokio::spawn(async {
+        let page_port = 80;
+        let folder_for_page = "frontend";
+        HttpServer::new(move || {
+                App::new()
+                    .service(fs::Files::new("/", folder_for_page).index_file("index.html"))
+                    .default_service(web::to(|| HttpResponse::NotFound())) 
+            })
+            .bind(("0.0.0.0", page_port)).expect("Bind error")
+            .run()
+            .await.expect("Err");});
+    
     let address = "127.0.0.1:8888";
     let (tx, _) = broadcast::channel::<Pixel>(64);
     let tx = Arc::new(tx);
@@ -33,7 +55,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         
         let pixels_clone = Arc::clone(&pixels);
         tokio::spawn(async move {
-            if let Err(e) = handle_connection(stream, tx_clone, rx, pixels_clone).await {
+            if let Err(e) = handle_ws_connection(stream, tx_clone, rx, pixels_clone).await {
                 eprintln!("Connection error: {}", e);
             }
         });
@@ -43,7 +65,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     tokio::select! {
         _ = save_pixels_task => {}
     }
-
     Ok(())
 }
 
@@ -56,13 +77,15 @@ async fn save_pixels_process(mut rx: broadcast::Receiver<Pixel>, pixels: Arc<Mut
     }
 }
 
-async fn handle_connection(
+
+async fn handle_ws_connection(
     raw_stream: TcpStream,
     tx: Arc<broadcast::Sender<Pixel>>,
     rx: broadcast::Receiver<Pixel>,
     pixels: Arc<Mutex<ChunkOfPixels>>
 ) -> Result<(), Box<dyn std::error::Error>> {
     let addr = raw_stream.peer_addr()?;
+
     let ws_stream = accept_async(raw_stream).await?;
     let (mut write, read) = ws_stream.split();
 
@@ -109,7 +132,7 @@ async fn resending_processing(
                 return;
             }
         };
-
+        println!("{}", &msg);
         if let Err(e) = tx_send.send(Pixel::from_json(&msg).unwrap()) {
             eprintln!("Sending error: {}", e);
         }
