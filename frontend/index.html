@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="style.css">
+    <title>Document</title>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+    <div id="panel">
+        <div class="tool-panel">
+            <input type="color" name="colorpicker" id="drawing-colorpicker">
+            <input class="mode-radio" type="radio" name="mode" id="look" onclick="change_mode('look')">
+            <input class="mode-radio" type="radio" name="mode" id="draw" onclick="change_mode('draw')">
+        </div>
+    </div>
+    <script src="connection.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>

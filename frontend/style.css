@@ -1,0 +1,26 @@
+#canvas {
+    margin: 0;
+    margin-bottom: -50px;
+    padding: 0;
+    height: 100%;
+    width: 100%;
+    image-rendering: pixelated;
+}
+
+#panel {
+    z-index: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center
+    
+}
+
+.tool-panel {
+    padding: 5px;
+    background-color: #00000039;
+}
+
+.tool-button {
+    height: 30px;
+    width: 30px;
+}

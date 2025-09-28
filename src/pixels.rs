@@ -1,0 +1,82 @@
+use serde_json::{self, Error};
+use serde::{Serialize};
+use std::collections::HashMap;
+
+
+#[derive(Clone)]
+#[derive(Serialize, Debug)]
+pub struct Pixel{
+    pub x : i64,
+    pub y : i64,
+    pub color : String,
+}
+
+impl Pixel {
+    pub fn new(x : i64, y : i64, color : String) -> Self{
+        Self { x: x, y: y, color: color }
+    }
+
+
+    pub fn from_json(json : &str) -> Result<Self, Error>{
+        let json_data : serde_json::Value = serde_json::from_str(json)?;
+        Ok(Self {
+            x : serde_json::from_value(json_data["x"].clone())?,
+            y : serde_json::from_value(json_data["y"].clone())?,
+            color : serde_json::from_value(json_data["c"].clone())?,
+        })
+    }
+
+    pub fn to_json(&self) -> String{
+        serde_json::to_string(&self).expect("Failed to convert to Value")
+    }
+}
+
+#[derive(Clone)]
+pub struct ChunkOfPixels {
+    pub pixels : HashMap<(i64, i64), String>
+}
+
+impl ChunkOfPixels {
+    pub fn new() -> Self {
+        Self { pixels: HashMap::new() }
+    }
+    pub fn add(&mut self, pixel : Pixel) {
+        self.pixels.insert((pixel.x, pixel.y), pixel.color);
+    }
+    pub fn get_all_pixels_as_vec(&self) -> Vec<Pixel> {
+        let mut vec_of_pixels : Vec<Pixel> = Vec::new();
+        for (k, v) in &self.pixels{
+            vec_of_pixels.push(Pixel::new (k.0, k.1, v.to_string()));
+        }
+        vec_of_pixels
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test1() {
+        let pixel_json_str = "{\"x\": 10, \"y\": 5, \"color\": \"#000000\"}";
+        let pixel = Pixel::from_json(pixel_json_str).unwrap();
+        assert_eq!(pixel.x, 10);
+        assert_eq!(pixel.y, 5);
+        assert_eq!(pixel.color, "#000000");
+    }
+    #[test]
+    fn test2() {
+        let pixel_json_str = "{\"x\": -12, \"y\": 6, \"color\": \"#078000\"}";
+        let pixel = Pixel::from_json(pixel_json_str).unwrap();
+        assert_eq!(pixel.x, -12);
+        assert_eq!(pixel.y, 6);
+        assert_eq!(pixel.color, "#078000");
+    }
+    #[test]
+    fn test3() {
+        let pixel = Pixel::new(-34, -66, "#078280".to_string());
+        assert_eq!(pixel.x, -34);
+        assert_eq!(pixel.y, -66);
+        assert_eq!(pixel.color, "#078280");
+    }
+}
