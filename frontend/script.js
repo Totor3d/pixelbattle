@@ -17,6 +17,7 @@ var pixel_size = 10;
 
 var curr_mode = ""
 
+
 canvas.width = window.innerWidth+10;
 canvas.height = window.innerHeight;
 
@@ -75,8 +76,8 @@ function change_mode(mode){
 
 
 socket.addEventListener("open", (event) => {
-  console.log("Connection open");
-  isSocketOpened = true;
+    console.log("Connection open");
+    isSocketOpened = true;
 });
 
 socket.addEventListener("message", (event) => {
@@ -84,46 +85,46 @@ socket.addEventListener("message", (event) => {
     var data = JSON.parse(event.data);
     if (Array.isArray(data)) {
         data.forEach(function (p) {pixel = new Pixel(p["x"], p["y"], p["c"]);
-        pixels.push(pixel);})
-    }
-    else {
-        pixel = new Pixel(data["x"], data["y"], data["c"]);
-        pixels.push(pixel);
-    }
-    drawPixels();
-});
-
-
-
-var mouseHold = false;
-
-var mousedown_x_pos = 0;
-var mousedown_y_pos = 0;
-
-var mouseup_x_pos = 0;
-var mouseup_y_pos = 0;
-
-var delta_x;
-var delta_y;
-
-var t_offset_x = 0;
-var t_offset_y = 0;
-
-var drawed_pixels = []
-
-function draw(event){
-    const rect = canvas.getBoundingClientRect();
-    const mx = event.clientX - rect.left;
-    const my = event.clientY - rect.top;
-    const canvasScale = 1
-    var xy = get_cursor_pos_on_grid(mx, my);
-    var x = xy[0];
-    var y = xy[1];
-    canvasUpdate();
-    var gx = Math.round((x-offset_x)/pixel_size);
-    var gy = Math.round((y-offset_y)/pixel_size);
-    if (mouseHold && !drawed_pixels.includes([gx, gy].toString())){
-        var pixel = new Pixel(gx, gy, colorpicker.value);
+            pixels.push(pixel);})
+        }
+        else {
+            pixel = new Pixel(data["x"], data["y"], data["c"]);
+            pixels.push(pixel);
+        }
+        drawPixels();
+    });
+    
+    
+    
+    var mouseHold = false;
+    
+    var mousedown_x_pos = 0;
+    var mousedown_y_pos = 0;
+    
+    var mouseup_x_pos = 0;
+    var mouseup_y_pos = 0;
+    
+    var delta_x;
+    var delta_y;
+    
+    var t_offset_x = 0;
+    var t_offset_y = 0;
+    
+    var drawed_pixels = []
+    
+    function draw(event){
+        const rect = canvas.getBoundingClientRect();
+        const mx = event.clientX - rect.left;
+        const my = event.clientY - rect.top;
+        const canvasScale = 1
+        var xy = get_cursor_pos_on_grid(mx, my);
+        var x = xy[0];
+        var y = xy[1];
+        canvasUpdate();
+        var gx = Math.round((x-offset_x)/pixel_size);
+        var gy = Math.round((y-offset_y)/pixel_size);
+        if (mouseHold && !drawed_pixels.includes([gx, gy].toString())){
+            var pixel = new Pixel(gx, gy, colorpicker.value);
         var pixel_data = {x: pixel.x, y: pixel.y, c: pixel.color};
         socket.send(JSON.stringify(pixel_data));
         console.log(gx, gy);
@@ -131,7 +132,7 @@ function draw(event){
         drawPixels();
     }
     context.strokeRect(Math.round(gx*pixel_size+offset_x), Math.round(gy*pixel_size+offset_y), Math.round(pixel_size), Math.round(pixel_size));
-
+    
 }
 
 canvas.addEventListener("mousedown", function(event) {
@@ -154,17 +155,17 @@ canvas.addEventListener("mousedown", function(event) {
 canvas.addEventListener("mousemove", function(event) {
     if (curr_mode == "look"){
         if (mouseHold)
-        {
-            const rect = canvas.getBoundingClientRect();
-            const x = event.clientX - rect.left;
-            const y = event.clientY - rect.top;
-            const canvasScale = 1
-            delta_x = (mousedown_x_pos - x)/canvasScale;
-            delta_y = (mousedown_y_pos - y)/canvasScale;
-            offset_x = -delta_x + t_offset_x;
-            offset_y = -delta_y + t_offset_y;
-            canvasUpdate();
-        }
+            {
+                const rect = canvas.getBoundingClientRect();
+                const x = event.clientX - rect.left;
+                const y = event.clientY - rect.top;
+                const canvasScale = 1
+                delta_x = (mousedown_x_pos - x)/canvasScale;
+                delta_y = (mousedown_y_pos - y)/canvasScale;
+                offset_x = -delta_x + t_offset_x;
+                offset_y = -delta_y + t_offset_y;
+                canvasUpdate();
+            }
     }
     else if (curr_mode == "draw"){
         draw(event);
@@ -212,4 +213,4 @@ pixels.push(new Pixel(10, 10, "#000000"))
 pixels.push(new Pixel(10, 12, "#000000"))
 drawPixels();
 
-change_mode("draw")
+change_mode("look")
