@@ -4,8 +4,6 @@ use serde;
 use std::collections::HashMap;
 use std::fs;
 
-use crate::pixels;
-
 
 #[derive(Clone)]
 #[derive(Serialize, Deserialize ,Debug)]
@@ -61,7 +59,6 @@ impl ChunkOfPixels {
     }
     pub fn from_json(json : &str) -> Result<Self, Error> {
         let pixles : Vec<Pixel> = serde_json::from_str(json)?;
-        println!("1111");
         let mut self1 = Self::new();
         for i in pixles.into_iter() {
             self1.add(i);

@@ -112,7 +112,6 @@ async fn handle_ws_connection(
 
     println!("New connection: {}", addr);
     let pixels_data = pixels.lock().await;
-    println!("{}", pixels_data.to_json());
     write.send(Message::Text(pixels_data.to_json())).await.unwrap();
     
     drop(pixels_data);
