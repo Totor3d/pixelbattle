@@ -4,8 +4,7 @@ const height = canvas.height;
 const context = canvas.getContext("2d");
 //context.imageSmoothingEnabled = false;
 const scale = window.devicePixelRatio;
-const socket = new WebSocket("ws://localhost:8888");
-
+const socket = new WebSocket("ws://" + window.location.href.split("/")[2].split(":")[0] + ":8888");
 var isSocketOpened = false;
 
 

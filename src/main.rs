@@ -22,8 +22,8 @@ use pixels::*;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    tokio::spawn(async {
-        let page_port = 80;
+    let page_task = tokio::spawn(async {
+        let page_port = 8889;
         let folder_for_page = "frontend";
         HttpServer::new(move || {
                 App::new()
@@ -34,7 +34,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             .run()
             .await.expect("Err");});
     
-    let address = "127.0.0.1:8888";
+    let address = "0.0.0.0:8888";
     let (tx, _) = broadcast::channel::<Pixel>(64);
     let tx = Arc::new(tx);
     let listener = TcpListener::bind(address).await?;
@@ -64,13 +64,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     
     tokio::select! {
         _ = save_pixels_task => {}
+        _ = page_task => {}
     }
     Ok(())
 }
 
 async fn save_pixels_process(mut rx: broadcast::Receiver<Pixel>, pixels: Arc<Mutex<ChunkOfPixels>>){
     while let Ok(msg) = rx.recv().await {
-        println!("Saving {}", msg.to_json());
         let mut pixels_data = pixels.lock().await;
         pixels_data.add(msg);
         drop(pixels_data);
@@ -91,7 +91,6 @@ async fn handle_ws_connection(
 
     println!("New connection: {}", addr);
     let pixels_data = pixels.lock().await;
-    println!("!!!!!!!{}", pixels_data.get_all_pixels_as_vec().len());
     for i in pixels_data.get_all_pixels_as_vec(){
         println!("Sending pixel {}", i.to_json());
         write.send(Message::Text(i.to_json())).await.expect("errrrrrrrrrrrrrrrrr");
@@ -132,7 +131,6 @@ async fn resending_processing(
                 return;
             }
         };
-        println!("{}", &msg);
         if let Err(e) = tx_send.send(Pixel::from_json(&msg).unwrap()) {
             eprintln!("Sending error: {}", e);
         }

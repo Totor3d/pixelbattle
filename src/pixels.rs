@@ -1,5 +1,6 @@
 use serde_json::{self, Error};
 use serde::{Serialize};
+use serde;
 use std::collections::HashMap;
 
 
@@ -8,9 +9,9 @@ use std::collections::HashMap;
 pub struct Pixel{
     pub x : i64,
     pub y : i64,
+    #[serde(rename = "c")]
     pub color : String,
 }
-
 impl Pixel {
     pub fn new(x : i64, y : i64, color : String) -> Self{
         Self { x: x, y: y, color: color }
@@ -22,10 +23,10 @@ impl Pixel {
         Ok(Self {
             x : serde_json::from_value(json_data["x"].clone())?,
             y : serde_json::from_value(json_data["y"].clone())?,
+            
             color : serde_json::from_value(json_data["c"].clone())?,
         })
     }
-
     pub fn to_json(&self) -> String{
         serde_json::to_string(&self).expect("Failed to convert to Value")
     }
@@ -58,7 +59,7 @@ mod tests {
 
     #[test]
     fn test1() {
-        let pixel_json_str = "{\"x\": 10, \"y\": 5, \"color\": \"#000000\"}";
+        let pixel_json_str = "{\"x\": 10, \"y\": 5, \"c\": \"#000000\"}";
         let pixel = Pixel::from_json(pixel_json_str).unwrap();
         assert_eq!(pixel.x, 10);
         assert_eq!(pixel.y, 5);
@@ -66,7 +67,7 @@ mod tests {
     }
     #[test]
     fn test2() {
-        let pixel_json_str = "{\"x\": -12, \"y\": 6, \"color\": \"#078000\"}";
+        let pixel_json_str = "{\"x\": -12, \"y\": 6, \"c\": \"#078000\"}";
         let pixel = Pixel::from_json(pixel_json_str).unwrap();
         assert_eq!(pixel.x, -12);
         assert_eq!(pixel.y, 6);
