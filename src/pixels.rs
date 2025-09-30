@@ -1,11 +1,14 @@
 use serde_json::{self, Error};
-use serde::{Serialize};
+use serde::{Deserialize, Serialize};
 use serde;
 use std::collections::HashMap;
+use std::fs;
+
+use crate::pixels;
 
 
 #[derive(Clone)]
-#[derive(Serialize, Debug)]
+#[derive(Serialize, Deserialize ,Debug)]
 pub struct Pixel{
     pub x : i64,
     pub y : i64,
@@ -55,6 +58,24 @@ impl ChunkOfPixels {
     }
     pub fn to_json(&self) -> String{
         serde_json::to_string(&self.get_all_pixels_as_vec()).expect("Failed to convert to Value")
+    }
+    pub fn from_json(json : &str) -> Result<Self, Error> {
+        let pixles : Vec<Pixel> = serde_json::from_str(json)?;
+        println!("1111");
+        let mut self1 = Self::new();
+        for i in pixles.into_iter() {
+            self1.add(i);
+        }
+        Ok(self1)
+    }
+    pub fn save_on_disk(&self, path : &str) {
+        fs::write(path, &self.to_json()).expect("Writing file error");
+    }
+    pub fn load_from_disk(path : &str) -> Self {
+        Self::from_json(&String::from_utf8(fs::read(path)
+        .expect("Reading file error"))
+        .expect("Reading text from file error"))
+        .expect("Failed converting json to ChunkOfPixels")
     }
 }
 

@@ -1,10 +1,11 @@
+use std::fs;
 use std::{net::SocketAddr, sync::Arc};
 use tokio::sync::Mutex;
 use tokio::net::{TcpListener, TcpStream};
 use tokio_tungstenite::{accept_async, WebSocketStream};
 use futures_util::{stream::SplitSink, stream::SplitStream, SinkExt, StreamExt};
 use tokio::sync::broadcast;
-use actix_files as fs;
+use actix_files as afs;
 
 type Message = tokio_tungstenite::tungstenite::Message;
 
@@ -24,7 +25,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         let folder_for_page = "frontend";
         HttpServer::new(move || {
                 App::new()
-                    .service(fs::Files::new("/", folder_for_page).index_file("index.html"))
+                    .service(afs::Files::new("/", folder_for_page).index_file("index.html"))
                     .default_service(web::to(|| HttpResponse::NotFound())) 
             })
             .bind(("0.0.0.0", page_port)).expect("Bind error")
@@ -36,14 +37,28 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let tx = Arc::new(tx);
     let listener = TcpListener::bind(address).await?;
     println!("WebSocket started on {}", address);
+    
+    let path_to_pixels_file = "pixels.json";
 
-    let pixels = Arc::new(Mutex::new(ChunkOfPixels::new()));
+    let pixels_data;
+    if fs::exists(path_to_pixels_file)?{
+        pixels_data = ChunkOfPixels::load_from_disk(path_to_pixels_file);
+    }
+    else {
+        fs::write(path_to_pixels_file, "[]")?;
+        pixels_data = ChunkOfPixels::load_from_disk(path_to_pixels_file);
+    }
+    
+    let amount_of_pixels : usize = pixels_data.pixels.len();
+    let pixels = Arc::new(Mutex::new(pixels_data));
     let rx = tx.subscribe();
 
     let pixels_clone = Arc::clone(&pixels);
 
+
+
     let save_pixels_task = tokio::spawn(async move{
-        save_pixels_process(rx, pixels_clone).await
+        save_pixels_process(rx, pixels_clone, amount_of_pixels, path_to_pixels_file).await
     });
     
     while let Ok((stream, _)) = listener.accept().await {
@@ -66,10 +81,19 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-async fn save_pixels_process(mut rx: broadcast::Receiver<Pixel>, pixels: Arc<Mutex<ChunkOfPixels>>){
+async fn save_pixels_process(
+    mut rx: broadcast::Receiver<Pixel>,
+    pixels: Arc<Mutex<ChunkOfPixels>>,
+    mut amount_of_pixels : usize,
+    path_to_pixels_file : &str
+){
     while let Ok(msg) = rx.recv().await {
+        amount_of_pixels += 1;
         let mut pixels_data = pixels.lock().await;
         pixels_data.add(msg);
+        if amount_of_pixels % 32 == 0 {
+            pixels_data.save_on_disk(path_to_pixels_file);
+        }
         drop(pixels_data);
     }
 }
