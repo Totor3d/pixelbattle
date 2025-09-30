@@ -1,7 +1,4 @@
-use std::io::{BufReader, Read};
 use std::{net::SocketAddr, sync::Arc};
-use futures_util::stream;
-use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::sync::Mutex;
 use tokio::net::{TcpListener, TcpStream};
 use tokio_tungstenite::{accept_async, WebSocketStream};
@@ -12,7 +9,7 @@ use actix_files as fs;
 type Message = tokio_tungstenite::tungstenite::Message;
 
 
-use actix_web::{App, HttpServer, Responder, HttpResponse, web};
+use actix_web::{App, HttpServer, HttpResponse, web};
 
 
 mod pixels;
@@ -32,7 +29,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             })
             .bind(("0.0.0.0", page_port)).expect("Bind error")
             .run()
-            .await.expect("Err");});
+            .await.unwrap();});
     
     let address = "0.0.0.0:8888";
     let (tx, _) = broadcast::channel::<Pixel>(64);
@@ -91,10 +88,9 @@ async fn handle_ws_connection(
 
     println!("New connection: {}", addr);
     let pixels_data = pixels.lock().await;
-    for i in pixels_data.get_all_pixels_as_vec(){
-        println!("Sending pixel {}", i.to_json());
-        write.send(Message::Text(i.to_json())).await.expect("errrrrrrrrrrrrrrrrr");
-    }
+    println!("{}", pixels_data.to_json());
+    write.send(Message::Text(pixels_data.to_json())).await.unwrap();
+    
     drop(pixels_data);
 
     let tx_send = tx.clone();

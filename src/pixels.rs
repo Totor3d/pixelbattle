@@ -32,7 +32,9 @@ impl Pixel {
     }
 }
 
+
 #[derive(Clone)]
+#[derive(Serialize, Debug)]
 pub struct ChunkOfPixels {
     pub pixels : HashMap<(i64, i64), String>
 }
@@ -50,6 +52,9 @@ impl ChunkOfPixels {
             vec_of_pixels.push(Pixel::new (k.0, k.1, v.to_string()));
         }
         vec_of_pixels
+    }
+    pub fn to_json(&self) -> String{
+        serde_json::to_string(&self.get_all_pixels_as_vec()).expect("Failed to convert to Value")
     }
 }
 

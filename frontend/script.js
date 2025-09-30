@@ -4,7 +4,9 @@ const height = canvas.height;
 const context = canvas.getContext("2d");
 //context.imageSmoothingEnabled = false;
 const scale = window.devicePixelRatio;
-const socket = new WebSocket("ws://" + window.location.href.split("/")[2].split(":")[0] + ":8888");
+var wsurl = "ws://" + window.location.href.split("/")[2].split(":")[0] + ":8888";
+console.log("WebSocket is connecting to " + wsurl)
+const socket = new WebSocket(wsurl);
 var isSocketOpened = false;
 
 
@@ -80,8 +82,14 @@ socket.addEventListener("open", (event) => {
 socket.addEventListener("message", (event) => {
     console.log(event.data);
     var data = JSON.parse(event.data);
-    pixel = new Pixel(data["x"], data["y"], data["c"]);
-    pixels.push(pixel);
+    if (Array.isArray(data)) {
+        data.forEach(function (p) {pixel = new Pixel(p["x"], p["y"], p["c"]);
+        pixels.push(pixel);})
+    }
+    else {
+        pixel = new Pixel(data["x"], data["y"], data["c"]);
+        pixels.push(pixel);
+    }
     drawPixels();
 });
 
