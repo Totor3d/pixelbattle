@@ -196,6 +196,7 @@ function zoom(zoomin, zoom_power, mouseX, mouseY) {
         offset_x = (offset_x+mouseX)/zoom_power;
         offset_y = (offset_y+mouseY)/zoom_power;
     }
+    canvasUpdate();
 }
 
 canvas.addEventListener("wheel", function(event) {
@@ -208,7 +209,7 @@ canvas.addEventListener("wheel", function(event) {
     
     zoom(change > 0, zoom_power, mouseX, mouseY);
 
-    canvasUpdate();
+    
 });
 
 pixels.push(new Pixel(10, 10, "#000000"))

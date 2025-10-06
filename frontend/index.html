@@ -14,8 +14,9 @@
             <input class="mode-radio" type="radio" name="mode" id="look" onclick="change_mode('look')">
             <input class="mode-radio" type="radio" name="mode" id="draw" onclick="change_mode('draw')">
         </div>
+        <button type="button" class="zoom_button" style="margin-left: 40px;" onclick="zoom(true, 2, canvas.width/2, canvas.height/2)">🔎+</button>
+        <button type="button" class="zoom_button" onclick="zoom(false, 2, canvas.width/2, canvas.height/2)">🔎-</button>
     </div>
-    <script src="connection.js"></script>
     <script src="script.js"></script>
 </body>
 </html>
