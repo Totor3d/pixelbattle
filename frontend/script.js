@@ -135,7 +135,7 @@ socket.addEventListener("message", (event) => {
     
 }
 
-canvas.addEventListener("mousedown", function(event) {
+canvas.addEventListener("pointerdown", function(event) {
     mouseHold = true;
     if (curr_mode == "look"){
         const rect = canvas.getBoundingClientRect();
@@ -152,7 +152,7 @@ canvas.addEventListener("mousedown", function(event) {
     }
 });
 
-canvas.addEventListener("mousemove", function(event) {
+canvas.addEventListener("pointermove", function(event) {
     if (curr_mode == "look"){
         if (mouseHold)
             {
@@ -171,7 +171,7 @@ canvas.addEventListener("mousemove", function(event) {
         draw(event);
     }
 });
-canvas.addEventListener("mouseup", function(event) {
+canvas.addEventListener("pointerup", function(event) {
     mouseHold = false;
     if (curr_mode == "look"){
         offset_x = t_offset_x - delta_x;
