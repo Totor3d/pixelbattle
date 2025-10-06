@@ -184,7 +184,19 @@ canvas.addEventListener("pointerup", function(event) {
     drawed_pixels = [];
 });
 
-
+function zoom(zoomin, zoom_power, mouseX, mouseY) {
+    if (zoomin){
+        pixel_size *= zoom_power;
+        offset_x = (offset_x * zoom_power) - mouseX;
+        offset_y = (offset_y * zoom_power) - mouseY;
+        
+    }
+    else {
+        pixel_size /= zoom_power;
+        offset_x = (offset_x+mouseX)/zoom_power;
+        offset_y = (offset_y+mouseY)/zoom_power;
+    }
+}
 
 canvas.addEventListener("wheel", function(event) {
     const rect = canvas.getBoundingClientRect();
@@ -193,19 +205,9 @@ canvas.addEventListener("wheel", function(event) {
     const mouseY = (event.clientY - rect.top)/canvasScale;
     var change = event.deltaY / 132;
     var zoom_power = 2;
-    var zoom = 1;
-    if (change > 0){
-        pixel_size *= zoom_power;
-        offset_x = (offset_x * zoom_power) - mouseX
-        offset_y = (offset_y * zoom_power) - mouseY
-        
-    }
-    else {
-        pixel_size /= zoom_power;
-        offset_x = (offset_x+mouseX)/zoom_power;
-        offset_y = (offset_y+mouseY)/zoom_power;
-    }
     
+    zoom(change > 0, zoom_power, mouseX, mouseY);
+
     canvasUpdate();
 });
 
