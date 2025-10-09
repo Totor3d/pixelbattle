@@ -7,6 +7,10 @@ use futures_util::{stream::SplitSink, stream::SplitStream, SinkExt, StreamExt};
 use tokio::sync::broadcast;
 use actix_files as afs;
 
+use serde_json::{self, Error};
+use serde::{Deserialize, Serialize};
+use serde;
+
 type Message = tokio_tungstenite::tungstenite::Message;
 
 
@@ -136,31 +140,49 @@ async fn handle_ws_connection(
 async fn resending_processing(
     addr: SocketAddr,
     tx_send: Arc<broadcast::Sender<Pixel>>,
-    mut read: SplitStream<WebSocketStream<tokio::net::TcpStream>>){
+    mut read: SplitStream<WebSocketStream<tokio::net::TcpStream>>)
+    -> Result<(), Error>
+    {
     while let Some(result) = read.next().await {
         let msg = match result {
             Ok(msg) if msg.is_text() => msg.to_text().unwrap_or_default().to_string(),
             Ok(msg) if msg.is_close() => {
                 println!("Client {} disconnected", addr);
-                return;
+                return Ok(());
             }
             Ok(_) => continue,
             Err(e) => {
                 eprintln!("Reading error from {}: {}", addr, e);
-                return;
+                return Ok(());
             }
         };
-        if let Err(e) = tx_send.send(Pixel::from_json(&msg).unwrap()) {
-            eprintln!("Sending error: {}", e);
+        let json : serde_json::Value = serde_json::from_str(&msg)?;
+        let data_type: String = serde_json::from_value(json["type"].clone())?;
+        let data_type_str: &str = &data_type;
+        let data = json["data"].clone();
+        match data_type_str {
+            "pixel" => {
+                if let Err(e) = tx_send.send(Pixel::from_json(data).unwrap()) {
+                    eprintln!("Sending error: {}", e);
+                }
+            }
+            "chunk" => {
+                
+            }
+            _ => {
+
+            }
         }
+        
     }
+    Ok(())
 }
 
 async fn process_inbox_data(
     mut rx: broadcast::Receiver<Pixel>,
     mut write: SplitSink<WebSocketStream<tokio::net::TcpStream>, Message>){
-    while let Ok(msg) = rx.recv().await {
-        if let Err(_e) = write.send(Message::Text(msg.to_json())).await
+    while let Ok(pixel) = rx.recv().await {
+        if let Err(_e) = write.send(Message::Text(pixel.to_json())).await
         {
             eprintln!("Sending to client error");
             break;

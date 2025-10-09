@@ -19,8 +19,7 @@ impl Pixel {
     }
 
 
-    pub fn from_json(json : &str) -> Result<Self, Error>{
-        let json_data : serde_json::Value = serde_json::from_str(json)?;
+    pub fn from_json(json_data : serde_json::Value) -> Result<Self, Error>{
         Ok(Self {
             x : serde_json::from_value(json_data["x"].clone())?,
             y : serde_json::from_value(json_data["y"].clone())?,
@@ -83,7 +82,7 @@ mod tests {
     #[test]
     fn test1() {
         let pixel_json_str = "{\"x\": 10, \"y\": 5, \"c\": \"#000000\"}";
-        let pixel = Pixel::from_json(pixel_json_str).unwrap();
+        let pixel = Pixel::from_json(serde_json::from_str(pixel_json_str).unwrap()).unwrap();
         assert_eq!(pixel.x, 10);
         assert_eq!(pixel.y, 5);
         assert_eq!(pixel.color, "#000000");
@@ -91,7 +90,7 @@ mod tests {
     #[test]
     fn test2() {
         let pixel_json_str = "{\"x\": -12, \"y\": 6, \"c\": \"#078000\"}";
-        let pixel = Pixel::from_json(pixel_json_str).unwrap();
+        let pixel = Pixel::from_json(serde_json::from_str(pixel_json_str).unwrap()).unwrap();
         assert_eq!(pixel.x, -12);
         assert_eq!(pixel.y, 6);
         assert_eq!(pixel.color, "#078000");

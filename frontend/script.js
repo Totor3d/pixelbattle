@@ -125,7 +125,7 @@ socket.addEventListener("message", (event) => {
         var gy = Math.round((y-offset_y)/pixel_size);
         if (mouseHold && !drawed_pixels.includes([gx, gy].toString())){
             var pixel = new Pixel(gx, gy, colorpicker.value);
-        var pixel_data = {x: pixel.x, y: pixel.y, c: pixel.color};
+        var pixel_data = {type: "pixel", data: {x: pixel.x, y: pixel.y, c: pixel.color}};
         socket.send(JSON.stringify(pixel_data));
         console.log(gx, gy);
         drawed_pixels.push([gx, gy].toString());
